@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Face Attendance System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --accent: #f43f5e;
+            --success: #10b981;
+            --danger: #ef4444;
+            --bg-start: #0f172a;
+            --bg-mid: #1e1b4b;
+            --bg-end: #312e81;
+            --card-bg: rgba(255, 255, 255, 0.96);
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --radius: 16px;
+            --shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+            background: linear-gradient(135deg, var(--bg-start), var(--bg-mid), var(--bg-end));
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 30px 15px;
+            color: var(--text-main);
+        }
+
+        body::before, body::after {
+            content: '';
+            position: fixed;
+            width: 400px; height: 400px;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.4;
+            z-index: 0;
+            animation: float 10s ease-in-out infinite;
+        }
+        body::before { background: #8b5cf6; top: -100px; left: -100px; }
+        body::after  { background: #f43f5e; bottom: -100px; right: -100px; animation-delay: -5s; }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            50%       { transform: translate(30px, 40px); }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            width: 100%;
+            max-width: 900px;
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(12px);
+            padding: 35px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        header { text-align: center; margin-bottom: 5px; }
+        header h1 {
+            font-size: 1.8rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-card {
+            padding: 18px;
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        .status-active   { background: linear-gradient(135deg, #d1fae5, #a7f3d0); border-color: #34d399; color: #065f46; }
+        .status-inactive { background: linear-gradient(135deg, #fee2e2, #fecaca); border-color: #f87171; color: #991b1b; }
+        .status-title { font-weight: 700; font-size: 1.1rem; margin-bottom: 4px; }
+        .status-sub   { font-size: 0.85rem; opacity: 0.85; }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-main);
+        }
+
+        .timetable-wrapper {
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+        }
+        .timetable-wrapper img { width: 100%; height: auto; display: block; }
+
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .input-group { margin-bottom: 12px; }
+        .input-group label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; }
+
+        input, select {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: all 0.2s;
+            background: #f8fafc;
+        }
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+            background: #fff;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 13px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-secondary { background: #e2e8f0; color: #334155; }
+        .btn-secondary:hover { background: #cbd5e1; }
+        .btn-primary { background: linear-gradient(135deg, var(--primary), #8b5cf6); color: white; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3); }
+        .btn-primary:hover { box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4); }
+        .btn-success { background: linear-gradient(135deg, #10b981, #059669); color: white; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+        .btn-success:hover { box-shadow: 0 6px 16px rgba(16, 185, 129, 0.4); }
+        .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); color: white; box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); }
+        .btn-danger:hover { box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4); }
+        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+        .btn-outline:hover { background: #eef2ff; }
+        .btn-warn { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3); }
+        .btn-warn:hover { box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4); }
+
+        .divider { height: 1px; background: #e2e8f0; margin: 5px 0; }
+
+        #attendanceResult { display: none; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 10px; }
+        th { background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 12px; text-align: left; font-weight: 600; color: white; }
+        td { padding: 10px; border-bottom: 1px solid #e2e8f0; color: #334155; }
+        tr:hover td { background: #f8fafc; }
+
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; }
+        .badge-present { background: #d1fae5; color: #065f46; }
+        .badge-absent  { background: #fee2e2; color: #991b1b; }
+        .badge-late    { background: #fef3c7; color: #92400e; }
+
+        .filter-options { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        .filter-options button { flex: 1; min-width: 120px; padding: 10px; border: 2px solid #e2e8f0; background: white; border-radius: 8px; cursor: pointer; font-weight: 600; transition: all 0.2s; }
+        .filter-options button.active { background: linear-gradient(135deg, var(--primary), #8b5cf6); color: white; border-color: var(--primary); }
+
+        .stats-box { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 15px; }
+        .stat-card { padding: 12px; border-radius: 8px; text-align: center; background: #f8fafc; }
+        .stat-card.total   { background: linear-gradient(135deg, #e0e7ff, #c7d2fe); color: #3730a3; }
+        .stat-card.present { background: linear-gradient(135deg, #d1fae5, #a7f3d0); color: #065f46; }
+        .stat-card.absent  { background: linear-gradient(135deg, #fee2e2, #fecaca); color: #991b1b; }
+        .stat-number { font-size: 1.5rem; font-weight: 700; }
+        .stat-label  { font-size: 0.75rem; opacity: 0.8; }
+
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-muted); }
+        .empty-state .icon { font-size: 3rem; margin-bottom: 10px; opacity: 0.5; }
+
+        /* ── MODAL ───────────────────────────────────────────────────────── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(4px);
+            z-index: 999;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .modal-overlay.open { display: flex; animation: fadeIn 0.2s ease; }
+        .modal-box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 28px;
+            width: 100%;
+            max-width: 480px;
+            box-shadow: 0 25px 60px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        .modal-box h2 { font-size: 1.15rem; font-weight: 700; color: var(--text-main); }
+        .modal-box p  { font-size: 0.85rem; color: var(--text-muted); }
+        .modal-actions { display: flex; gap: 10px; margin-top: 4px; }
+        .modal-actions .btn { margin-bottom: 0; }
+
+        .radio-group { display: flex; flex-direction: column; gap: 10px; }
+        .radio-option {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+        }
+        .radio-option:hover { border-color: var(--primary); background: #eef2ff; }
+        .radio-option input[type=radio] { accent-color: var(--primary); width: 18px; height: 18px; }
+
+        .modal-extra { display: none; animation: fadeIn 0.2s ease; }
+
+        @media (max-width: 600px) {
+            .container { padding: 20px; }
+            .grid-2 { grid-template-columns: 1fr; }
+            header h1 { font-size: 1.4rem; }
+            .stats-box { grid-template-columns: 1fr; }
+            .modal-actions { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ══════════════════════ CLEAR ATTENDANCE MODAL ══════════════════════ -->
+<div class="modal-overlay" id="clearModal">
+    <div class="modal-box">
+        <h2>🗑️ Clear Attendance</h2>
+        <p>Choose what you want to clear:</p>
+
+        <div class="radio-group">
+            <label class="radio-option">
+                <input type="radio" name="clearMode" value="all" onchange="toggleClearFields()">
+                Clear ALL attendance records
+            </label>
+            <label class="radio-option">
+                <input type="radio" name="clearMode" value="day" onchange="toggleClearFields()">
+                Clear a specific day's attendance
+            </label>
+            <label class="radio-option">
+                <input type="radio" name="clearMode" value="period" onchange="toggleClearFields()">
+                Clear a specific period on a day
+            </label>
+        </div>
+
+        <div class="modal-extra" id="clearDayField">
+            <div class="input-group" style="margin-bottom:0">
+                <label for="clearDate">Date</label>
+                <input type="date" id="clearDate">
+            </div>
+        </div>
+
+        <div class="modal-extra" id="clearPeriodField">
+            <div class="input-group" style="margin-bottom:8px">
+                <label for="clearPeriodDate">Date</label>
+                <input type="date" id="clearPeriodDate">
+            </div>
+            <div class="input-group" style="margin-bottom:0">
+                <label for="clearPeriod">Period</label>
+                <select id="clearPeriod">
+                    <option value="">-- Select Period --</option>
+                    <option value="Period I">Period I (09:10–10:00)</option>
+                    <option value="Period II">Period II (10:00–10:50)</option>
+                    <option value="Period III">Period III (11:10–12:00)</option>
+                    <option value="Period IV">Period IV (12:00–12:50)</option>
+                    <option value="Period V">Period V (13:50–14:40)</option>
+                    <option value="Period VI">Period VI (14:40–15:30)</option>
+                    <option value="Period VII">Period VII (15:40–16:30)</option>
+                    <option value="Period VIII">Period VIII (16:30–17:20)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeModal('clearModal')">Cancel</button>
+            <button class="btn btn-danger"    onclick="confirmClear()">🗑️ Confirm Clear</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════ DELETE STUDENT MODAL ════════════════════════ -->
+<div class="modal-overlay" id="deleteModal">
+    <div class="modal-box">
+        <h2>❌ Delete Student(s)</h2>
+        <p>This removes the student's registration, attendance records, and face dataset images.</p>
+
+        <div class="radio-group">
+            <label class="radio-option">
+                <input type="radio" name="deleteMode" value="one" checked onchange="toggleDeleteFields()">
+                Delete a specific student
+            </label>
+            <label class="radio-option">
+                <input type="radio" name="deleteMode" value="all" onchange="toggleDeleteFields()">
+                Delete ALL students (full wipe)
+            </label>
+        </div>
+
+        <div class="modal-extra" id="deleteRegField" style="display:block;">
+            <div class="input-group" style="margin-bottom:0">
+                <label for="deleteReg">Register Number</label>
+                <input type="text" id="deleteReg" placeholder="e.g., 210701">
+            </div>
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn btn-secondary" onclick="closeModal('deleteModal')">Cancel</button>
+            <button class="btn btn-danger"    onclick="confirmDelete()">❌ Confirm Delete</button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════ MAIN CARD ══════════════════════════════ -->
+<div class="container">
+    <header>
+        <h1>📷 Face Attendance System</h1>
+    </header>
+
+    <!-- Status -->
+    <div id="statusCard" class="status-card status-inactive">
+        <div class="status-title" id="statusTitle">Checking Schedule...</div>
+        <div class="status-sub"   id="statusSub">--:--:--</div>
+    </div>
+
+    <!-- Timetable -->
+    <div>
+        <div class="section-title">📅 Daily Schedule</div>
+        <div class="timetable-wrapper">
+            <img src="/static/TIMETABLE.png" alt="Timetable">
+        </div>
+    </div>
+
+    <!-- Registration -->
+    <div>
+        <div class="section-title">👤 Student Registration</div>
+        <div class="grid-2">
+            <div class="input-group">
+                <label for="regNo">Register Number</label>
+                <input type="text" id="regNo" placeholder="e.g., 210701">
+            </div>
+            <div class="input-group">
+                <label for="studentName">Name</label>
+                <input type="text" id="studentName" placeholder="e.g., Alex Johnson">
+            </div>
+        </div>
+        <button class="btn btn-secondary" onclick="captureFace()">📸 Capture Face &amp; Add to Dataset</button>
+        <button class="btn btn-outline"   onclick="viewStudents()">👥 View Students</button>
+        <button class="btn btn-primary"   onclick="trainModel()">🧠 Train Model</button>
+        <button class="btn btn-warn"      onclick="openModal('deleteModal')">❌ Delete Student(s)</button>
+
+        <!-- Subject & Mode -->
+        <div class="input-group" style="margin-top:4px;">
+            <label for="subjectInput">Subject Name / Code</label>
+            <input type="text" id="subjectInput" placeholder="e.g., CS3591 - Web Technology">
+        </div>
+        <div class="input-group">
+            <label for="modeSelect">Attendance Type</label>
+            <select id="modeSelect">
+                <option value="normal">Normal Class</option>
+                <option value="special">Special Class</option>
+            </select>
+        </div>
+        <div class="input-group" id="specialTimeGroup" style="display:none;">
+            <label for="specialStart">Special Class Start Time</label>
+            <input type="time" id="specialStart">
+        </div>
+    </div>
+
+    <!-- Student list (hidden by default) -->
+    <div id="studentList" style="display:none; margin-top:4px;">
+        <div class="section-title">👥 Student List</div>
+        <table>
+            <thead><tr><th>Reg No</th><th>Name</th></tr></thead>
+            <tbody id="studentBody"></tbody>
+        </table>
+        <div id="studentEmpty" class="empty-state" style="display:none;">
+            <div class="icon">📭</div>
+            <p>No students found</p>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Action buttons -->
+    <div>
+        <button class="btn btn-success" onclick="startAttendance()">▶ Start Attendance Session</button>
+        <button class="btn btn-outline" onclick="showViewOptions()">📊 View Attendance</button>
+        <button class="btn btn-danger"  onclick="openModal('clearModal')">🗑️ Clear Attendance</button>
+    </div>
+
+    <!-- View options -->
+    <div id="viewOptions" style="display:none;">
+        <div class="section-title">📋 Select View Type</div>
+        <div class="filter-options">
+            <button onclick="viewAttendance('all')"      id="btnAll"      class="active">📄 Entire Attendance</button>
+            <button onclick="viewAttendance('filtered')" id="btnFiltered"            >🔍 Filtered</button>
+        </div>
+
+        <div id="filterFields" style="display:none; margin-top:15px;">
+
+            <!-- Subject filter (new) -->
+            <div class="input-group">
+                <label for="filterSubject">Subject Code / Name</label>
+                <input type="text" id="filterSubject" placeholder="e.g., CS3591">
+            </div>
+
+            <div class="input-group">
+                <label for="filterDate">Date</label>
+                <input type="date" id="filterDate">
+            </div>
+
+            <div class="input-group">
+                <label for="filterPeriod">Period</label>
+                <select id="filterPeriod">
+                    <option value="">All Periods</option>
+                    <option value="Period I">Period I (09:10–10:00)</option>
+                    <option value="Period II">Period II (10:00–10:50)</option>
+                    <option value="Period III">Period III (11:10–12:00)</option>
+                    <option value="Period IV">Period IV (12:00–12:50)</option>
+                    <option value="Period V">Period V (13:50–14:40)</option>
+                    <option value="Period VI">Period VI (14:40–15:30)</option>
+                    <option value="Period VII">Period VII (15:40–16:30)</option>
+                    <option value="Period VIII">Period VIII (16:30–17:20)</option>
+                </select>
+            </div>
+
+            <button class="btn btn-primary" onclick="applyFilter()">Apply Filter</button>
+        </div>
+    </div>
+
+    <!-- Attendance result table -->
+    <div id="attendanceResult">
+        <div class="section-title">📋 Attendance Records</div>
+        <div class="stats-box">
+            <div class="stat-card total">  <div class="stat-number" id="totalCount">0</div>  <div class="stat-label">Total</div></div>
+            <div class="stat-card present"><div class="stat-number" id="presentCount">0</div><div class="stat-label">Present</div></div>
+            <div class="stat-card absent"> <div class="stat-number" id="absentCount">0</div> <div class="stat-label">Absent</div></div>
+        </div>
+        <table id="resultTable">
+            <thead>
+                <tr><th>Reg No</th><th>Name</th><th>Subject</th><th>Time</th><th>Status</th></tr>
+            </thead>
+            <tbody id="resultBody"></tbody>
+        </table>
+        <div id="emptyState" class="empty-state" style="display:none;">
+            <div class="icon">📭</div>
+            <p>No attendance records found</p>
+        </div>
+    </div>
+</div><!-- /.container -->
+
+<script>
+/* ── SCHEDULE CLOCK ──────────────────────────────────────────────────── */
+const schedule = [
+    { name: "Period I",     start: "09:10", end: "10:00" },
+    { name: "Period II",    start: "10:00", end: "10:50" },
+    { name: "Tea Break",    start: "10:50", end: "11:10", isBreak: true },
+    { name: "Period III",   start: "11:10", end: "12:00" },
+    { name: "Period IV",    start: "12:00", end: "12:50" },
+    { name: "Lunch Break",  start: "12:50", end: "13:50", isBreak: true },
+    { name: "Period V",     start: "13:50", end: "14:40" },
+    { name: "Period VI",    start: "14:40", end: "15:30" },
+    { name: "Tea Break",    start: "15:30", end: "15:40", isBreak: true },
+    { name: "Period VII",   start: "15:40", end: "16:30" },
+    { name: "Period VIII",  start: "16:30", end: "17:20" }
+];
+
+function toMin(t) { const [h,m] = t.split(':').map(Number); return h*60+m; }
+
+function updateStatus() {
+    const now = new Date();
+    const cm  = now.getHours()*60 + now.getMinutes();
+    document.getElementById('statusSub').textContent = now.toLocaleTimeString();
+    const sc  = document.getElementById('statusCard');
+    const st  = document.getElementById('statusTitle');
+    const act = schedule.find(s => cm >= toMin(s.start) && cm < toMin(s.end));
+    if (act) {
+        sc.className   = `status-card ${act.isBreak ? 'status-inactive' : 'status-active'}`;
+        st.textContent = act.isBreak ? `☕ ${act.name}` : `✅ Active: ${act.name}`;
+    } else {
+        sc.className   = 'status-card status-inactive';
+        st.textContent = cm < toMin(schedule[0].start) ? "⏳ Classes start soon" : "🔴 No Active Period";
+    }
+}
+setInterval(updateStatus, 1000);
+updateStatus();
+
+/* ── MODAL HELPERS ──────────────────────────────────────────────────── */
+function openModal(id)  { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+/* ── CLEAR MODAL LOGIC ──────────────────────────────────────────────── */
+function toggleClearFields() {
+    const mode = document.querySelector('input[name="clearMode"]:checked')?.value;
+    document.getElementById('clearDayField').style.display    = (mode === 'day')    ? 'block' : 'none';
+    document.getElementById('clearPeriodField').style.display = (mode === 'period') ? 'block' : 'none';
+}
+
+function confirmClear() {
+    const mode = document.querySelector('input[name="clearMode"]:checked')?.value;
+    if (!mode) { alert("⚠️ Please select a clear option."); return; }
+
+    let body = { mode };
+
+    if (mode === 'day') {
+        const date = document.getElementById('clearDate').value;
+        if (!date) { alert("⚠️ Please select a date."); return; }
+        body.date = date;
+    }
+    if (mode === 'period') {
+        const date   = document.getElementById('clearPeriodDate').value;
+        const period = document.getElementById('clearPeriod').value;
+        if (!date)   { alert("⚠️ Please select a date."); return; }
+        if (!period) { alert("⚠️ Please select a period."); return; }
+        body.date   = date;
+        body.period = period;
+    }
+
+    const label = mode === 'all' ? "ALL attendance records"
+                : mode === 'day' ? `attendance for ${body.date}`
+                : `${body.period} on ${body.date}`;
+
+    if (!confirm(`⚠️ Confirm: Clear ${label}?`)) return;
+
+    fetch("/clear_attendance", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+    })
+    .then(r => r.json())
+    .then(d => { alert(d.message); closeModal('clearModal'); })
+    .catch(e => alert("❌ Error: " + e.message));
+}
+
+/* ── DELETE MODAL LOGIC ─────────────────────────────────────────────── */
+function toggleDeleteFields() {
+    const mode = document.querySelector('input[name="deleteMode"]:checked')?.value;
+    document.getElementById('deleteRegField').style.display = (mode === 'one') ? 'block' : 'none';
+}
+
+function confirmDelete() {
+    const mode = document.querySelector('input[name="deleteMode"]:checked')?.value;
+    let body   = { mode };
+
+    if (mode === 'one') {
+        const reg = document.getElementById('deleteReg').value.trim();
+        if (!reg) { alert("⚠️ Enter a Register Number."); return; }
+        body.reg = reg;
+        if (!confirm(`⚠️ Delete student ${reg} and all their data?`)) return;
+    } else {
+        if (!confirm("⚠️ This will delete ALL students, their images, and the trained model. Continue?")) return;
+    }
+
+    fetch("/delete_student", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body)
+    })
+    .then(r => r.json())
+    .then(d => {
+        alert(d.message);
+        closeModal('deleteModal');
+        // Refresh student list if open
+        const sl = document.getElementById('studentList');
+        if (sl.style.display === 'block') viewStudents();
+    })
+    .catch(e => alert("❌ Error: " + e.message));
+}
+
+/* ── CAPTURE ────────────────────────────────────────────────────────── */
+function captureFace() {
+    const reg  = document.getElementById("regNo").value.trim();
+    const name = document.getElementById("studentName").value.trim();
+    if (!reg || !name) { alert("⚠️ Please enter Register Number and Name!"); return; }
+
+    const btn = document.querySelector('.btn-secondary');
+    btn.textContent = "⏳ Capturing...";
+
+    fetch("/capture", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reg, name })
+    })
+    .then(r => r.text())
+    .then(data => {
+        if (data.startsWith("<")) { alert("❌ Backend error (check Flask terminal)"); return; }
+        try {
+            const json = JSON.parse(data);
+            alert(json.message);
+            document.getElementById("regNo").value = "";
+            document.getElementById("studentName").value = "";
+        } catch { alert("❌ Invalid response from server"); }
+    })
+    .catch(e => alert("❌ Error: " + e.message))
+    .finally(() => { btn.textContent = "📸 Capture Face & Add to Dataset"; });
+}
+
+/* ── TRAIN ──────────────────────────────────────────────────────────── */
+function trainModel() {
+    document.querySelector('.btn-primary').textContent = "⏳ Training...";
+    fetch("/train")
+    .then(r => r.text())
+    .then(data => {
+        if (data.startsWith("<")) { alert("❌ Training failed"); return; }
+        try { alert(JSON.parse(data).message); } catch { alert(data); }
+    })
+    .catch(e => alert("❌ Error: " + e.message))
+    .finally(() => { document.querySelector('.btn-primary').textContent = "🧠 Train Model"; });
+}
+
+/* ── VIEW STUDENTS ──────────────────────────────────────────────────── */
+function viewStudents() {
+    const container = document.getElementById("studentList");
+    if (container.style.display === "block") { container.style.display = "none"; return; }
+
+    fetch("/students")
+    .then(r => { if (!r.ok) throw new Error("Route not found"); return r.json(); })
+    .then(data => {
+        const body  = document.getElementById("studentBody");
+        const empty = document.getElementById("studentEmpty");
+        body.innerHTML = "";
+        if (!data || data.length === 0) {
+            empty.style.display = "block";
+        } else {
+            empty.style.display = "none";
+            data.forEach(s => {
+                body.innerHTML += `<tr><td>${s.RegisterNo}</td><td>${s.Name}</td></tr>`;
+            });
+        }
+        container.style.display = "block";
+        container.scrollIntoView({ behavior: "smooth" });
+    })
+    .catch(e => alert("❌ Error: " + e.message));
+}
+
+/* ── START ATTENDANCE ───────────────────────────────────────────────── */
+function startAttendance() {
+    const subject   = document.getElementById("subjectInput").value.trim();
+    const mode      = document.getElementById("modeSelect").value;
+    const startTime = document.getElementById("specialStart").value;
+
+    if (mode === "normal" && !subject) { alert("⚠️ Enter subject!"); return; }
+    if (mode === "special" && !startTime) { alert("⚠️ Enter start time!"); return; }
+
+    document.querySelector('.btn-success').textContent = "⏳ Starting...";
+
+    fetch(`/attendance?subject=${encodeURIComponent(subject)}&mode=${mode}&start=${startTime}`)
+    .then(r => r.text())
+    .then(data => {
+        if (data.startsWith("<")) { alert("❌ Backend crashed. Check terminal."); return; }
+        try { alert(JSON.parse(data).message); } catch { alert(data); }
+    })
+    .catch(e => alert("❌ Error: " + e.message))
+    .finally(() => { document.querySelector('.btn-success').textContent = "▶ Start Attendance Session"; });
+}
+
+/* ── VIEW ATTENDANCE ────────────────────────────────────────────────── */
+function showViewOptions() {
+    const vo = document.getElementById('viewOptions');
+    const ar = document.getElementById('attendanceResult');
+    vo.style.display = vo.style.display === 'none' ? 'block' : 'none';
+    if (vo.style.display === 'none') ar.style.display = 'none';
+    else viewAttendance('all');
+}
+
+function viewAttendance(type) {
+    document.getElementById('btnAll').classList.remove('active');
+    document.getElementById('btnFiltered').classList.remove('active');
+
+    if (type === 'all') {
+        document.getElementById('btnAll').classList.add('active');
+        document.getElementById('filterFields').style.display = 'none';
+
+        fetch("/view_all")
+        .then(r => r.text())
+        .then(data => {
+            if (data.startsWith("<")) { alert("❌ Backend error"); return; }
+            try { displayAttendance(JSON.parse(data)); } catch { alert("❌ Invalid JSON"); }
+        })
+        .catch(e => alert("❌ Error: " + e.message));
+
+    } else {
+        document.getElementById('btnFiltered').classList.add('active');
+        document.getElementById('filterFields').style.display = 'block';
+        document.getElementById('filterDate').valueAsDate = new Date();
+    }
+}
+
+function applyFilter() {
+    const subject = document.getElementById('filterSubject').value.trim();
+    const date    = document.getElementById('filterDate').value;
+    const period  = document.getElementById('filterPeriod').value;
+
+    const params = new URLSearchParams();
+    if (subject) params.append('subject', subject);
+    if (date)    params.append('date', date);
+    if (period)  params.append('period', period);
+
+    fetch(`/view_filtered?${params.toString()}`)
+    .then(r => r.text())
+    .then(data => {
+        if (data.startsWith("<")) { alert("❌ Backend error"); return; }
+        try { displayAttendance(JSON.parse(data)); } catch { alert("❌ Invalid JSON response"); }
+    })
+    .catch(e => alert("❌ Error: " + e.message));
+}
+
+/* ── DISPLAY ATTENDANCE ─────────────────────────────────────────────── */
+function displayAttendance(data) {
+    const ar    = document.getElementById('attendanceResult');
+    const tbody = document.getElementById('resultBody');
+    const empty = document.getElementById('emptyState');
+    const table = document.getElementById('resultTable');
+    tbody.innerHTML = "";
+
+    if (!data || data.length === 0) {
+        table.style.display = 'none';
+        empty.style.display = 'block';
+        document.getElementById('totalCount').textContent   = '0';
+        document.getElementById('presentCount').textContent = '0';
+        document.getElementById('absentCount').textContent  = '0';
+    } else {
+        table.style.display = 'table';
+        empty.style.display = 'none';
+        let p = 0, a = 0, l = 0;
+        data.forEach(r => {
+            const st  = (r.status || r.Status || '').toLowerCase();
+            let   cls = 'badge-present';
+            if (st === 'absent') cls = 'badge-absent';
+            else if (st === 'late') cls = 'badge-late';
+            if (st === 'present') p++;
+            else if (st === 'absent') a++;
+            else if (st === 'late') l++;
+            tbody.innerHTML += `<tr>
+                <td>${r.RegisterNo || r.reg || r['Reg No'] || '--'}</td>
+                <td>${r.Name       || r.name  || '--'}</td>
+                <td>${r.Subject    || r.subject || '--'}</td>
+                <td>${r.Time       || r.time   || '--'}</td>
+                <td><span class="badge ${cls}">${r.Status || r.status || '--'}</span></td>
+            </tr>`;
+        });
+        document.getElementById('totalCount').textContent   = data.length;
+        document.getElementById('presentCount').textContent = p + l;
+        document.getElementById('absentCount').textContent  = a;
+    }
+    ar.style.display = 'block';
+    ar.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+/* ── MODE SELECT ────────────────────────────────────────────────────── */
+document.getElementById("modeSelect").addEventListener("change", function () {
+    document.getElementById("specialTimeGroup").style.display = this.value === "special" ? "block" : "none";
+});
+
+/* ── CLOSE MODAL ON OVERLAY CLICK ───────────────────────────────────── */
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+    overlay.addEventListener('click', function (e) {
+        if (e.target === this) this.classList.remove('open');
+    });
+});
+</script>
+</body>
+</html>

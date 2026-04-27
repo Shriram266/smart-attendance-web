@@ -1,0 +1,10 @@
+# Ignore sensitive and generated files
+credentials.json
+database.csv
+attendance.csv
+trainer.yml
+dataset/
+
+# Python cache
+__pycache__/
+*.pyc
